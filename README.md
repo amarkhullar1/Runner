@@ -44,6 +44,23 @@ Runner is an iOS app that generates personalized running training plans using Op
 3. Set up environment variables in `.env`
 4. Run the server: `npm start`
 
+#### Embedding the backend in another Node.js service
+
+The backend can also be embedded programmatically. Require the package and use the exported helpers:
+
+```js
+const { startServer, createApp } = require('runner-backend');
+
+// Quick start (automatically connects to MongoDB and starts listening)
+startServer({ port: 4000 });
+
+// Advanced usage (re-use the Express app inside an existing server)
+const app = createApp();
+// mount additional routes or middleware here
+```
+
+`startServer` accepts the same environment variables as the CLI (`PORT`, `MONGODB_URI`, `ALLOWED_ORIGINS`) and can be customised with options such as `skipDatabase`, custom `logger`, or `appOptions` for fine-grained control of middleware.
+
 ### iOS App Setup
 1. Open `Runner.xcodeproj` in Xcode
 2. Update the API base URL in `Config.swift`

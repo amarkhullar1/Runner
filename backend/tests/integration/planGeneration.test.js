@@ -1,3 +1,65 @@
+jest.mock('../../services/openaiService', () => ({
+  generateTrainingPlan: jest.fn(),
+}));
+
+const buildPlan = (input = {}) => {
+  const weeks = 12;
+  const distance = input.distance || input.maxDistance || 5;
+  const difficultyLevel = (() => {
+    if (distance >= 30 || (input.maxDistance || 0) >= 30) return 'advanced';
+    if (distance >= 10 || (input.maxDistance || 0) >= 21) return 'intermediate';
+      return 'beginner';
+    })();
+
+    const workouts = Array.from({ length: 10 }).map((_, index) => {
+      const baseTypes = ['easy', 'tempo', 'interval', 'long_run', 'recovery'];
+      const type = baseTypes[index % baseTypes.length];
+      const intensityMap = {
+        easy: 'low',
+        tempo: 'moderate',
+        interval: 'high',
+        long_run: difficultyLevel === 'advanced' ? 'high' : 'moderate',
+        recovery: 'low',
+      };
+
+      const durationBase = [30, 35, 40, 60, 25][index % 5];
+      const distanceFactor = Math.max(1, distance / 5);
+
+      return {
+        title: `${type.replace('_', ' ')} session ${index + 1}`,
+        description: `Mocked ${type} workout tailored for ${difficultyLevel} runners`,
+        type,
+        duration: Math.round(durationBase * Math.min(distanceFactor, 3)),
+        distance: Number((Math.max(2, distance / 2) + index * 0.5).toFixed(1)),
+        intensity: intensityMap[type],
+        instructions: [
+          'Start with a dynamic warm-up',
+          `Maintain focus on ${type === 'interval' ? 'speed' : 'form'} throughout`,
+          'Cool down with light jogging and stretching',
+        ],
+        weekNumber: Math.floor(index / 5) + 1,
+        dayOfWeek: (index % 5) + 1,
+        scheduledDate: new Date(Date.now() + index * 86400000).toISOString(),
+      };
+    });
+
+    return {
+      title: `${difficultyLevel.charAt(0).toUpperCase()}${difficultyLevel.slice(1)} ${Math.round(
+        distance,
+      )}K Training Plan`,
+      description: `A comprehensive ${weeks}-week program for ${difficultyLevel} runners`,
+      duration: weeks,
+      difficulty: difficultyLevel,
+      goals: [
+        'Build aerobic endurance',
+        'Improve running efficiency',
+        'Enhance race-day confidence',
+      ],
+      workouts,
+    aiGeneratedContent: JSON.stringify({ difficulty: difficultyLevel, distance }),
+  };
+};
+
 require('dotenv').config();
 const request = require('supertest');
 const express = require('express');
@@ -6,6 +68,7 @@ const path = require('path');
 const authRoutes = require('../../routes/auth');
 const planRoutes = require('../../routes/plans');
 const { setupTestDB, teardownTestDB, clearTestDB } = require('../setup');
+const openaiService = require('../../services/openaiService');
 
 // Create Express app for testing
 const app = express();
@@ -193,8 +256,9 @@ describe('Plan Generation Integration Test', () => {
   }, 30000);
 
   beforeEach(async () => {
+    openaiService.generateTrainingPlan.mockImplementation((input) => Promise.resolve(buildPlan(input)));
     await clearTestDB();
-    
+
     // Register and authenticate user for testing
     const userData = {
       name: 'Plan Test User',

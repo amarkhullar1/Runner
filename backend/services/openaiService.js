@@ -108,7 +108,11 @@ Make sure the plan is progressive, realistic, and appropriate for the runner's c
 
     } catch (error) {
       console.error('OpenAI service error:', error);
-      
+
+      if (error.message === 'Invalid response format from AI service' || error.message === 'Incomplete training plan generated') {
+        throw error;
+      }
+
       if (error.code === 'insufficient_quota') {
         throw new Error('AI service quota exceeded. Please try again later.');
       } else if (error.code === 'invalid_api_key') {

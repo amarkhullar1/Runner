@@ -1,43 +1,26 @@
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { resetStores } = require('./utils/inMemoryStore');
 
-let mongoServer;
+jest.mock('../models/User', () => require('./utils/inMemoryUserModel'));
+jest.mock('../models/TrainingPlan', () => require('./utils/inMemoryTrainingPlanModel'));
 
-// Setup test database
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-openai-key';
+
 const setupTestDB = async () => {
-  // Close existing connection if any
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.connection.close();
-  }
-  
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  
-  await mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  resetStores();
 };
 
-// Cleanup test database
 const teardownTestDB = async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
+  resetStores();
 };
 
-// Clear all collections
 const clearTestDB = async () => {
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany({});
-  }
+  resetStores();
 };
 
 module.exports = {
   setupTestDB,
   teardownTestDB,
-  clearTestDB
+  clearTestDB,
 };

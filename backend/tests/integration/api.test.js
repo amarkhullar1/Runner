@@ -1,15 +1,19 @@
-require('dotenv').config();
-const request = require('supertest');
-const express = require('express');
-const authRoutes = require('../../routes/auth');
-const planRoutes = require('../../routes/plans');
-const workoutRoutes = require('../../routes/workouts');
-const fitRoutes = require('../../routes/fit');
-const { setupTestDB, teardownTestDB, clearTestDB } = require('../setup');
-
-// Mock OpenAI service for integration tests
 jest.mock('../../services/openaiService', () => ({
-  generateTrainingPlan: jest.fn().mockResolvedValue({
+  generateTrainingPlan: jest.fn(),
+}));
+
+describe('API Integration Tests', () => {
+  require('dotenv').config();
+  const request = require('supertest');
+  const express = require('express');
+  const authRoutes = require('../../routes/auth');
+  const planRoutes = require('../../routes/plans');
+  const workoutRoutes = require('../../routes/workouts');
+  const fitRoutes = require('../../routes/fit');
+  const { setupTestDB, teardownTestDB, clearTestDB } = require('../setup');
+  const openaiService = require('../../services/openaiService');
+
+  const integrationPlan = {
     title: 'Integration Test Plan',
     description: 'A plan for integration testing',
     duration: 12,
@@ -25,14 +29,19 @@ jest.mock('../../services/openaiService', () => ({
         intensity: 'low',
         instructions: ['Test instruction'],
         weekNumber: 1,
-        dayOfWeek: 1
-      }
+        dayOfWeek: 1,
+      },
     ],
-    aiGeneratedContent: 'Mock AI response'
-  })
-}));
+    aiGeneratedContent: 'Mock AI response',
+  };
 
-describe('API Integration Tests', () => {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/auth', authRoutes);
+  app.use('/api/plans', planRoutes);
+  app.use('/api/workouts', workoutRoutes);
+  app.use('/api/fit', fitRoutes);
+
   let authToken;
   let userId;
 
@@ -46,7 +55,8 @@ describe('API Integration Tests', () => {
 
   beforeEach(async () => {
     await clearTestDB();
-    
+    openaiService.generateTrainingPlan.mockResolvedValue(integrationPlan);
+
     // Register and authenticate user
     const userData = {
       name: 'Integration Test User',

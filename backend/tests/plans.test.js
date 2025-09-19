@@ -1,48 +1,51 @@
+jest.mock('../services/openaiService', () => ({
+  generateTrainingPlan: jest.fn(),
+}));
+
+// Create test app
 require('dotenv').config();
 const request = require('supertest');
 const express = require('express');
+const authRoutes = require('../routes/auth');
 const planRoutes = require('../routes/plans');
 const User = require('../models/User');
 const TrainingPlan = require('../models/TrainingPlan');
 const { setupTestDB, teardownTestDB, clearTestDB } = require('./setup');
+const openaiService = require('../services/openaiService');
 
-// Mock OpenAI service
-jest.mock('../services/openaiService', () => ({
-  generateTrainingPlan: jest.fn().mockResolvedValue({
-    title: 'Beginner 5K Training Plan',
-    description: 'A 12-week plan to prepare for your first 5K race',
-    duration: 12,
-    difficulty: 'beginner',
-    goals: ['Complete a 5K race', 'Build aerobic base', 'Improve running form'],
-    workouts: [
-      {
-        title: 'Easy Run',
-        description: 'Comfortable pace run',
-        type: 'easy',
-        duration: 30,
-        distance: 3.0,
-        intensity: 'low',
-        instructions: ['Warm up with walking', 'Run at conversational pace', 'Cool down'],
-        weekNumber: 1,
-        dayOfWeek: 1
-      },
-      {
-        title: 'Tempo Run',
-        description: 'Comfortably hard pace',
-        type: 'tempo',
-        duration: 25,
-        distance: 2.5,
-        intensity: 'moderate',
-        instructions: ['Warm up thoroughly', 'Run at tempo pace', 'Cool down'],
-        weekNumber: 1,
-        dayOfWeek: 3
-      }
-    ],
-    aiGeneratedContent: 'Mock AI response'
-  })
-}));
+const mockPlanResponse = {
+  title: 'Beginner 5K Training Plan',
+  description: 'A 12-week plan to prepare for your first 5K race',
+  duration: 12,
+  difficulty: 'beginner',
+  goals: ['Complete a 5K race', 'Build aerobic base', 'Improve running form'],
+  workouts: [
+    {
+      title: 'Easy Run',
+      description: 'Comfortable pace run',
+      type: 'easy',
+      duration: 30,
+      distance: 3.0,
+      intensity: 'low',
+      instructions: ['Warm up with walking', 'Run at conversational pace', 'Cool down'],
+      weekNumber: 1,
+      dayOfWeek: 1,
+    },
+    {
+      title: 'Tempo Run',
+      description: 'Comfortably hard pace',
+      type: 'tempo',
+      duration: 25,
+      distance: 2.5,
+      intensity: 'moderate',
+      instructions: ['Warm up thoroughly', 'Run at tempo pace', 'Cool down'],
+      weekNumber: 1,
+      dayOfWeek: 3,
+    },
+  ],
+  aiGeneratedContent: 'Mock AI response',
+};
 
-// Create test app
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
@@ -62,7 +65,8 @@ describe('Training Plans Routes', () => {
 
   beforeEach(async () => {
     await clearTestDB();
-    
+    openaiService.generateTrainingPlan.mockResolvedValue(mockPlanResponse);
+
     // Create and authenticate user
     const userData = {
       name: 'John Doe',

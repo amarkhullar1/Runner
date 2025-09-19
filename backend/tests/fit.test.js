@@ -1,48 +1,55 @@
-require('dotenv').config();
-const request = require('supertest');
-const express = require('express');
-const fitRoutes = require('../routes/fit');
-const User = require('../models/User');
-const TrainingPlan = require('../models/TrainingPlan');
-const { setupTestDB, teardownTestDB, clearTestDB } = require('./setup');
-
-// Mock FIT file service
 jest.mock('../services/fitFileService', () => ({
-  generateFitFile: jest.fn().mockResolvedValue({
-    fileName: 'workout_123_1234567890.fit',
-    filePath: '/path/to/file.fit',
-    url: '/api/fit/download/workout_123_1234567890.fit'
-  }),
-  getFitFile: jest.fn().mockResolvedValue(Buffer.from('mock fit file data')),
-  cleanupOldFiles: jest.fn().mockResolvedValue()
+  generateFitFile: jest.fn(),
+  getFitFile: jest.fn(),
+  cleanupOldFiles: jest.fn(),
 }));
 
 // Mock OpenAI service
 jest.mock('../services/openaiService', () => ({
-  generateTrainingPlan: jest.fn().mockResolvedValue({
-    title: 'Test Plan',
-    description: 'Test description',
-    duration: 12,
-    difficulty: 'beginner',
-    goals: ['Test goal'],
-    workouts: [
-      {
-        title: 'Test Workout',
-        description: 'Test workout description',
-        type: 'easy',
-        duration: 30,
-        distance: 5.0,
-        intensity: 'low',
-        instructions: ['Test instruction'],
-        weekNumber: 1,
-        dayOfWeek: 1
-      }
-    ],
-    aiGeneratedContent: 'Mock response'
-  })
+  generateTrainingPlan: jest.fn(),
 }));
 
 // Create test app
+require('dotenv').config();
+const request = require('supertest');
+const express = require('express');
+const authRoutes = require('../routes/auth');
+const planRoutes = require('../routes/plans');
+const fitRoutes = require('../routes/fit');
+const User = require('../models/User');
+const TrainingPlan = require('../models/TrainingPlan');
+const { setupTestDB, teardownTestDB, clearTestDB } = require('./setup');
+const fitFileService = require('../services/fitFileService');
+const openaiService = require('../services/openaiService');
+
+const mockFitFile = {
+  fileName: 'workout_123_1234567890.fit',
+  filePath: '/path/to/file.fit',
+  url: '/api/fit/download/workout_123_1234567890.fit',
+};
+
+const mockPlan = {
+  title: 'Test Plan',
+  description: 'Test description',
+  duration: 12,
+  difficulty: 'beginner',
+  goals: ['Test goal'],
+  workouts: [
+    {
+      title: 'Test Workout',
+      description: 'Test workout description',
+      type: 'easy',
+      duration: 30,
+      distance: 5.0,
+      intensity: 'low',
+      instructions: ['Test instruction'],
+      weekNumber: 1,
+      dayOfWeek: 1,
+    },
+  ],
+  aiGeneratedContent: 'Mock response',
+};
+
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
@@ -64,7 +71,11 @@ describe('FIT File Routes', () => {
 
   beforeEach(async () => {
     await clearTestDB();
-    
+    fitFileService.generateFitFile.mockResolvedValue(mockFitFile);
+    fitFileService.getFitFile.mockResolvedValue(Buffer.from('mock fit file data'));
+    fitFileService.cleanupOldFiles.mockResolvedValue();
+    openaiService.generateTrainingPlan.mockResolvedValue(mockPlan);
+
     // Create and authenticate user
     const userData = {
       name: 'John Doe',

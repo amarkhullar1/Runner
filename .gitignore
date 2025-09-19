@@ -73,6 +73,7 @@ jspm_packages/
 # Test outputs (but keep the directory structure)
 backend/test-outputs/*.html
 backend/test-outputs/*.json
+backend/fit-files/
 
 # IDE files
 .vscode/

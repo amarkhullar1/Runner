@@ -75,7 +75,7 @@ describe('Auth Middleware', () => {
       .set('Authorization', 'InvalidFormat token')
       .expect(401);
 
-    expect(response.body.message).toBe('No token, authorization denied');
+    expect(response.body.message).toBe('Token is not valid');
   });
 
   it('should deny access for inactive user', async () => {

@@ -53,7 +53,7 @@ router.get('/:workoutId', auth, async (req, res) => {
 // @route   GET /api/fit/download/:fileName
 // @desc    Download FIT file by filename
 // @access  Private
-router.get('/download/:fileName', auth, async (req, res) => {
+router.get('/download/:fileName(*)', auth, async (req, res) => {
   try {
     const { fileName } = req.params;
     
