@@ -1,48 +1,52 @@
+jest.mock('../services/openaiService', () => ({
+  generateTrainingPlan: jest.fn(),
+}));
+
+// Create test app
 require('dotenv').config();
 const request = require('supertest');
 const express = require('express');
+const authRoutes = require('../routes/auth');
+const planRoutes = require('../routes/plans');
 const workoutRoutes = require('../routes/workouts');
 const User = require('../models/User');
 const TrainingPlan = require('../models/TrainingPlan');
 const { setupTestDB, teardownTestDB, clearTestDB } = require('./setup');
+const openaiService = require('../services/openaiService');
 
-// Mock OpenAI service
-jest.mock('../services/openaiService', () => ({
-  generateTrainingPlan: jest.fn().mockResolvedValue({
-    title: 'Test Training Plan',
-    description: 'A test plan',
-    duration: 12,
-    difficulty: 'beginner',
-    goals: ['Test goal'],
-    workouts: [
-      {
-        title: 'Morning Run',
-        description: 'Easy pace run',
-        type: 'easy',
-        duration: 30,
-        distance: 5.0,
-        intensity: 'low',
-        instructions: ['Warm up', 'Run easy', 'Cool down'],
-        weekNumber: 1,
-        dayOfWeek: 1
-      },
-      {
-        title: 'Interval Training',
-        description: 'Speed work',
-        type: 'interval',
-        duration: 45,
-        distance: 6.0,
-        intensity: 'high',
-        instructions: ['Warm up well', 'Run intervals', 'Cool down'],
-        weekNumber: 1,
-        dayOfWeek: 3
-      }
-    ],
-    aiGeneratedContent: 'Mock response'
-  })
-}));
+const mockWorkoutPlan = {
+  title: 'Test Training Plan',
+  description: 'A test plan',
+  duration: 12,
+  difficulty: 'beginner',
+  goals: ['Test goal'],
+  workouts: [
+    {
+      title: 'Morning Run',
+      description: 'Easy pace run',
+      type: 'easy',
+      duration: 30,
+      distance: 5.0,
+      intensity: 'low',
+      instructions: ['Warm up', 'Run easy', 'Cool down'],
+      weekNumber: 1,
+      dayOfWeek: 1,
+    },
+    {
+      title: 'Interval Training',
+      description: 'Speed work',
+      type: 'interval',
+      duration: 45,
+      distance: 6.0,
+      intensity: 'high',
+      instructions: ['Warm up well', 'Run intervals', 'Cool down'],
+      weekNumber: 1,
+      dayOfWeek: 3,
+    },
+  ],
+  aiGeneratedContent: 'Mock response',
+};
 
-// Create test app
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
@@ -65,7 +69,8 @@ describe('Workouts Routes', () => {
 
   beforeEach(async () => {
     await clearTestDB();
-    
+    openaiService.generateTrainingPlan.mockResolvedValue(mockWorkoutPlan);
+
     // Create and authenticate user
     const userData = {
       name: 'John Doe',
